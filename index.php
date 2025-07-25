@@ -72,7 +72,7 @@
         // =========================================================================
         // === CONFIGURATION: PASTE YOUR GOOGLE APPS SCRIPT URL HERE ===
         // =========================================================================
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpv7WoObP3HH2e82KHCyyIDejt24keoZVwADf7beyRip1_6sjXTmzV6FpCyk3XjYOplg/exec'; 
+        const SCRIPT_URL = '1JmDWayclwir0hS2qOQDBInWOTkStw1nij2yUTs1ncto'; 
         // =========================================================================
 
         const SISAKET_AMPHOES = ["เมืองศรีสะเกษ", "กันทรลักษ์", "กันทรารมย์", "ขุขันธ์", "ขุนหาญ", "น้ำเกลี้ยง", "โนนคูณ", "บึงบูรพ์", "เบญจลักษ์", "ปรางค์กู่", "ปอย", "พยุห์", "ไพรบึง", "โพธิ์ศรีสุวรรณ", "ภูสิงห์", "เมืองจันทร์", "ยางชุมน้อย", "ราษีไศล", "วังหิน", "ศรีรัตนะ", "ศิลาลาด", "ห้วยทับทัน", "อุทุมพรพิสัย"].sort((a,b) => a.localeCompare(b, 'th'));
