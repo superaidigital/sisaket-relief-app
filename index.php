@@ -63,8 +63,12 @@
             <div><button id="resetFilterBtn" class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">ล้างค่า</button></div>
         </div>
 
+        <!-- ***** CHANGE HERE ***** -->
+        <!-- Loading Indicator is now outside the list -->
+        <div id="loading-indicator" class="text-center py-10" style="display: none;"><div class="loader"></div><p class="mt-2 text-gray-500">กำลังโหลดข้อมูล...</p></div>
+
         <div id="shelterList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             <div id="loading-indicator" class="col-span-full text-center py-10"><div class="loader"></div><p class="mt-2 text-gray-500">กำลังโหลดข้อมูล...</p></div>
+            <!-- Shelter cards will be inserted here -->
         </div>
     </div>
 
@@ -72,7 +76,7 @@
         // =========================================================================
         // === CONFIGURATION: PASTE YOUR GOOGLE APPS SCRIPT URL HERE ===
         // =========================================================================
-        const SCRIPT_URL = '1JmDWayclwir0hS2qOQDBInWOTkStw1nij2yUTs1ncto'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpv7WoObP3HH2e82KHCyyIDejt24keoZVwADf7beyRip1_6sjXTmzV6FpCyk3XjYOplg/exec'; 
         // =========================================================================
 
         const SISAKET_AMPHOES = ["เมืองศรีสะเกษ", "กันทรลักษ์", "กันทรารมย์", "ขุขันธ์", "ขุนหาญ", "น้ำเกลี้ยง", "โนนคูณ", "บึงบูรพ์", "เบญจลักษ์", "ปรางค์กู่", "ปอย", "พยุห์", "ไพรบึง", "โพธิ์ศรีสุวรรณ", "ภูสิงห์", "เมืองจันทร์", "ยางชุมน้อย", "ราษีไศล", "วังหิน", "ศรีรัตนะ", "ศิลาลาด", "ห้วยทับทัน", "อุทุมพรพิสัย"].sort((a,b) => a.localeCompare(b, 'th'));
@@ -87,7 +91,8 @@
         
         async function apiCall(action, payload = {}) {
             const loadingIndicator = document.getElementById('loading-indicator');
-            loadingIndicator.style.display = 'block';
+            // Ensure indicator exists before trying to access its style
+            if(loadingIndicator) loadingIndicator.style.display = 'block';
 
             try {
                 if (action === 'read') {
@@ -110,22 +115,33 @@
                 alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับฐานข้อมูล: ' + error.message);
                 return null;
             } finally {
-                loadingIndicator.style.display = 'none';
+                if(loadingIndicator) loadingIndicator.style.display = 'none';
             }
         }
         
         async function loadShelters() {
+            shelterList.innerHTML = ''; // Clear old results before loading new ones
             const data = await apiCall('read');
             if(data) {
-                allShelters = data.filter(s => s.id).sort((a, b) => a.name.localeCompare(b.name, 'th'));
-                filterAndRenderShelters();
+                if(Array.isArray(data)) {
+                    allShelters = data.filter(s => s.id).sort((a, b) => a.name.localeCompare(b.name, 'th'));
+                    filterAndRenderShelters();
+                } else {
+                    console.error('Received non-array data from API:', data);
+                    allShelters = [];
+                    filterAndRenderShelters();
+                }
             }
         }
 
         function filterAndRenderShelters() {
             const searchTerm = searchInput.value.toLowerCase();
             const selectedAmphoe = amphoeFilter.value;
-            const filtered = allShelters.filter(s => s.name.toLowerCase().includes(searchTerm) && (!selectedAmphoe || s.amphoe === selectedAmphoe));
+            const filtered = allShelters.filter(s => {
+                const nameMatch = s.name && s.name.toLowerCase().includes(searchTerm);
+                const amphoeMatch = !selectedAmphoe || s.amphoe === selectedAmphoe;
+                return nameMatch && amphoeMatch;
+            });
             renderShelters(filtered);
             updateSummary(filtered);
         }
@@ -143,10 +159,10 @@
                 const card = document.createElement('div');
                 card.className = 'shelter-card bg-white rounded-xl shadow-md p-5 flex flex-col space-y-3';
                 card.innerHTML = `
-                    <div><div class="flex justify-between"><h2 class="text-xl font-bold">${s.name}</h2><button class="delete-shelter-btn text-gray-400 hover:text-red-600" data-id="${s.id}" data-name="${s.name}"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div><p class="text-sm text-gray-500">อ.${s.amphoe}</p></div>
+                    <div><div class="flex justify-between items-start"><h2 class="text-xl font-bold break-words pr-2">${s.name}</h2><button class="delete-shelter-btn text-gray-400 hover:text-red-600 flex-shrink-0" data-id="${s.id}" data-name="${s.name}"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div><p class="text-sm text-gray-500">อ.${s.amphoe}</p></div>
                     <div class="pt-3 mt-3 border-t"><p><span class="font-semibold">ผู้ประสานงาน:</span> ${s.coordinator}</p><p><span class="font-semibold">โทร:</span> <a href="tel:${s.phone}" class="text-blue-600">${s.phone}</a></p></div>
-                    <div class="pt-3 border-t"><div class="flex justify-between"><span>ผู้เข้าพัก</span><span>${s.currentOccupancy} / ${s.capacity}</span></div><div class="w-full bg-gray-200 h-4 rounded-full"><div class="${c} h-4 rounded-full" style="width:${p}%"></div></div><form class="update-occupancy-form flex space-x-2 mt-2"><input type="number" value="${s.currentOccupancy}" max="${s.capacity}" class="w-full border rounded-md p-1 text-center" required><input type="hidden" value="${s.id}"><button type="submit" class="px-3 bg-blue-500 text-white rounded-md">อัปเดต</button></form></div>
-                    <div class="pt-3 border-t"><h3 class="font-medium">ความต้องการ</h3><div class="needs-list max-h-32 overflow-y-auto space-y-1 pr-2 mt-1">${(s.needs && s.needs.length) ? s.needs.map((n,i) => `<div class="flex items-center p-1 rounded-md ${statusColors[n.status] || ''}"><span class="flex-grow">${n.text}</span><select class="status-select text-xs rounded-md ml-2 p-1" data-id="${s.id}" data-index="${i}"><option ${n.status==='ต้องการ'?'selected':''}>ต้องการ</option><option ${n.status==='กำลังจัดส่ง'?'selected':''}>กำลังจัดส่ง</option><option ${n.status==='ได้รับแล้ว'?'selected':''}>ได้รับแล้ว</option></select><button class="delete-need-btn ml-2 text-gray-400" data-id="${s.id}" data-index="${i}">X</button></div>`).join('') : '<p class="text-xs text-gray-400">ไม่มี</p>'}</div><form class="add-need-form flex space-x-2 mt-2"><input type="text" placeholder="เพิ่ม..." class="w-full border rounded-md p-1" required><input type="hidden" value="${s.id}"><button type="submit" class="px-3 bg-green-500 text-white rounded-md">เพิ่ม</button></form></div>`;
+                    <div class="pt-3 border-t"><div class="flex justify-between"><span>ผู้เข้าพัก</span><span>${s.currentOccupancy} / ${s.capacity}</span></div><div class="w-full bg-gray-200 h-4 rounded-full mt-1"><div class="${c} h-4 rounded-full" style="width:${p}%"></div></div><form class="update-occupancy-form flex space-x-2 mt-2"><input type="number" value="${s.currentOccupancy}" max="${s.capacity}" min="0" class="w-full border rounded-md p-1 text-center" required><input type="hidden" value="${s.id}"><button type="submit" class="px-3 bg-blue-500 text-white rounded-md">อัปเดต</button></form></div>
+                    <div class="pt-3 border-t"><h3 class="font-medium">ความต้องการ</h3><div class="needs-list max-h-32 overflow-y-auto space-y-1 pr-2 mt-1">${(s.needs && s.needs.length) ? s.needs.map((n,i) => `<div class="flex items-center p-1 rounded-md ${statusColors[n.status] || ''}"><span class="flex-grow">${n.text}</span><select class="status-select text-xs rounded-md ml-2 p-1" data-id="${s.id}" data-index="${i}"><option ${n.status==='ต้องการ'?'selected':''}>ต้องการ</option><option ${n.status==='กำลังจัดส่ง'?'selected':''}>กำลังจัดส่ง</option><option ${n.status==='ได้รับแล้ว'?'selected':''}>ได้รับแล้ว</option></select><button class="delete-need-btn ml-2 text-gray-400 hover:text-red-500" data-id="${s.id}" data-index="${i}">X</button></div>`).join('') : '<p class="text-xs text-gray-400">ไม่มี</p>'}</div><form class="add-need-form flex space-x-2 mt-2"><input type="text" placeholder="เพิ่ม..." class="w-full border rounded-md p-1" required><input type="hidden" value="${s.id}"><button type="submit" class="px-3 bg-green-500 text-white rounded-md">เพิ่ม</button></form></div>`;
                 shelterList.appendChild(card);
             });
         }
@@ -198,7 +214,7 @@
                 if (result && result.status === 'success') {
                     addModal.classList.remove('is-open');
                     addShelterForm.reset();
-                    loadShelters();
+                    await loadShelters();
                 }
             });
 
@@ -209,7 +225,7 @@
                     if (result && result.status === 'success') {
                         delModal.classList.remove('is-open');
                         shelterIdToDelete = null;
-                        loadShelters();
+                        await loadShelters();
                     }
                 }
             });
@@ -225,12 +241,13 @@
                 }
                 if (target.closest('.delete-need-btn')) {
                     const btn = target.closest('.delete-need-btn');
+                    e.stopPropagation(); // Prevent other events from firing
                     const { id, index } = btn.dataset;
                     const shelter = allShelters.find(s => s.id === id);
                     if (shelter) {
                         shelter.needs.splice(index, 1);
                         await apiCall('update', { id, needs: shelter.needs });
-                        loadShelters();
+                        await loadShelters();
                     }
                 }
             });
@@ -242,7 +259,7 @@
                     const id = form.querySelector('input[type=hidden]').value;
                     const occupancy = form.querySelector('input[type=number]').value;
                     await apiCall('update', { id, currentOccupancy: occupancy });
-                    loadShelters();
+                    await loadShelters();
                 }
                 if(form.classList.contains('add-need-form')) {
                     const id = form.querySelector('input[type=hidden]').value;
@@ -252,7 +269,7 @@
                         const newNeeds = shelter.needs || [];
                         newNeeds.push({text, status: 'ต้องการ'});
                         await apiCall('update', { id, needs: newNeeds });
-                        loadShelters();
+                        await loadShelters();
                     }
                 }
             });
@@ -265,7 +282,7 @@
                     if(shelter) {
                         shelter.needs[index].status = sel.value;
                         await apiCall('update', { id, needs: shelter.needs });
-                        loadShelters();
+                        await loadShelters();
                     }
                 }
             });
